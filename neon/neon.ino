@@ -33,8 +33,12 @@ int NUM_PIXELS = 20;
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(NUM_PIXELS, stripPin1, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(NUM_PIXELS, stripPin2, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip3 = Adafruit_NeoPixel(NUM_PIXELS, stripPin3, NEO_GRB + NEO_KHZ800);
-
 Adafruit_NeoPixel strips[3] = {strip1, strip2, strip3};
+
+const byte buttonPin = 0;
+int buttonState = 0;
+
+
 
 void setup() {
     Serial.begin(9600);
@@ -48,22 +52,38 @@ void setup() {
         strips[i].clear();
         strips[i].show();
     }
+
+    // set up button
+    pinMode(buttonPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(buttonPin), button, RISING); // trigger interrupt when button is released
+
     Serial.println("setup end");
 }
 
 void loop() {
-    Serial.println("loop");
+    //Serial.println("loop");
     solidColours();
-    delay(1000);
 }
 
-
+void button() {
+    Serial.println("--- button ---");
+    buttonState = (buttonState + 1) % 2;
+    Serial.println(buttonState, DEC);
+}
 
 void solidColours() {
+    int r, g, b;
+    if (buttonState == 0) {
+        r = 255;
+        g = 0;
+        b = 0;
+    } else {
+        r = 0;
+        g = 255;
+        b = 0;
+    }
+    
     for (int i = 0; i < 3; i++) {
-        int r = rand() % 255;
-        int g = rand() % 255;
-        int b = rand() % 255;
         strips[i].clear();
         for (int j = 0; j < NUM_PIXELS; j++) {
             strips[i].setPixelColor(j, r, g, b);
