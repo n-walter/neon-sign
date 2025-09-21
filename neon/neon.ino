@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <Arduino.h>
 
+// TODO: move classes to external .h and .cpp files, this one is getting crowded...
+
 class Colour {
     public:
     int r, g, b;
@@ -24,6 +26,84 @@ class Colour {
     }
 };
 
+class Section {
+    public:
+    Colour colour;
+    Adafruit_NeoPixel strip;
+    int stripLength;
+    int modeSelection = 0;
+
+    Section(Colour colour, Adafruit_NeoPixel strip, int stripLength) {
+        this->colour = colour;
+        this->strip = strip;
+        this->stripLength = stripLength;
+    }
+
+    void initialise() {
+        Serial.println("initialising...");
+        // initialise strip
+        strip.begin();
+        strip.setBrightness(32);
+        strip.clear();
+        strip.show();
+
+        // 
+        animate();
+    }
+
+    void animate() {
+        Serial.println("animating...");
+        Serial.println(modeSelection);
+        switch (modeSelection) {
+        case 0:
+            Serial.println("\tcase 0");
+            doAnimateSolid();
+            break;
+        case 1:
+            Serial.println("\tcase 1");
+            doAnimateAlternating();
+            break;
+        
+        default:
+            Serial.println("\tdefault");
+            // if we don't have a handler for this mode, reset to base
+            // I don't know how to create a list of function references in C++ and I don't want
+            // to constantly update a modulo value while adding new stuff
+            modeSelection = 0;
+            animate();
+            break;
+        }
+    }
+
+    void doAnimateSolid() {
+        Serial.println("\t\tsolid");
+        strip.clear();
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, colour.r, colour.g, colour.b);
+        }
+        strip.show();
+    }
+
+    void doAnimateAlternating() {
+        Serial.println("\t\talternating");
+        strip.clear();
+        for (int i = 0; i < stripLength; i++) {
+            if (i % 2 == 0) { // equivalent of python truthy or falsy values in C++? cast to bool?
+                strip.setPixelColor(i, colour.r, colour.g, colour.b);
+            } else {
+                Colour complement = this->colour.calculateComplent();
+                strip.setPixelColor(i, complement.r, complement.g, complement.b);
+            }
+        }
+        strip.show();
+    }
+
+    void nextAnimation() {
+        Serial.println("nextAnimation");
+        modeSelection = modeSelection + 1;
+    }
+};
+
 int stripPin1 = A4;
 int stripPin2 = A5;
 int stripPin3 = A6;
@@ -35,6 +115,15 @@ Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(NUM_PIXELS, stripPin2, NEO_GRB + NE
 Adafruit_NeoPixel strip3 = Adafruit_NeoPixel(NUM_PIXELS, stripPin3, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strips[3] = {strip1, strip2, strip3};
 
+// https://colorcodes.io/neon-color-codes/
+Colour NEON_RED = Colour(210, 39, 48);
+Colour NEON_BLUE = Colour(77, 77, 255);
+Colour NEON_ORANGE = Colour(255, 173, 0);
+
+Section krumme = Section(NEON_RED, strip1, 20);
+Section gemeinde = Section(NEON_BLUE, strip2, 20);
+Section border = Section(NEON_ORANGE, strip3, 20);
+
 const byte buttonPin = 0;
 int buttonState = 0;
 
@@ -45,13 +134,9 @@ void setup() {
     delay(5000);
     Serial.println("setup start");
 
-    // reset pixel strips. for each doesnt work for some reason
-    for (int i = 0; i < 3; i++) {
-        Serial.println("strip setup");
-        strips[i].begin();
-        strips[i].clear();
-        strips[i].show();
-    }
+    krumme.initialise();
+    gemeinde.initialise();
+    border.initialise();
 
     // set up button
     pinMode(buttonPin, INPUT_PULLUP);
@@ -61,33 +146,16 @@ void setup() {
 }
 
 void loop() {
-    //Serial.println("loop");
-    solidColours();
+    krumme.animate();
+    gemeinde.animate();
+    border.animate();
+
+    delay(1000); // 1 animation per second for debugging, should easily handle 10, probably 100 later
 }
 
 void button() {
     Serial.println("--- button ---");
-    buttonState = (buttonState + 1) % 2;
-    Serial.println(buttonState, DEC);
-}
-
-void solidColours() {
-    int r, g, b;
-    if (buttonState == 0) {
-        r = 255;
-        g = 0;
-        b = 0;
-    } else {
-        r = 0;
-        g = 255;
-        b = 0;
-    }
-    
-    for (int i = 0; i < 3; i++) {
-        strips[i].clear();
-        for (int j = 0; j < NUM_PIXELS; j++) {
-            strips[i].setPixelColor(j, r, g, b);
-        }    
-        strips[i].show();
-    }
+    krumme.nextAnimation();
+    gemeinde.nextAnimation();
+    border.nextAnimation();
 }
