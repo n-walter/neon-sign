@@ -29,14 +29,16 @@ class Colour {
 class Section {
     public:
     Colour colour;
+    Colour complement;
     Adafruit_NeoPixel strip;
     int stripLength;
     int modeSelection = 0;
 
-    Section(Colour colour, Adafruit_NeoPixel strip, int stripLength) {
+    Section(Colour colour, Colour complement, int stripLength, int stripPin) {
         this->colour = colour;
-        this->strip = strip;
+        this->complement = complement;
         this->stripLength = stripLength;
+        this->strip = Adafruit_NeoPixel(stripLength, stripPin, NEO_GRB + NEO_KHZ800);
     }
 
     void initialise() {
@@ -117,7 +119,6 @@ class Section {
         That's weird python to start with. Now it's translated to C++ who doesn't know C++. 
         */
         Serial.println("\t\tgradient");  
-        Colour complement = colour.calculateComplent();
         Colour gradient[stripLength];
         gradient[0] = colour;
         for (int step = 1; step < stripLength; step++) {
@@ -141,26 +142,19 @@ class Section {
 int stripPin1 = A4;
 int stripPin2 = A5;
 int stripPin3 = A6;
-Colour c1, c2, c3;
-int NUM_PIXELS = 20;
-
-Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(NUM_PIXELS, stripPin1, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(NUM_PIXELS, stripPin2, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel strip3 = Adafruit_NeoPixel(NUM_PIXELS, stripPin3, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel strips[3] = {strip1, strip2, strip3};
 
 // https://colorcodes.io/neon-color-codes/
-Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_BLUE = Colour(77, 77, 255);
+Colour NEON_PURPLE = Colour(199, 36, 177);
+Colour NEON_RED = Colour(210, 39, 48);
+Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
 
-Section krumme = Section(NEON_RED, strip1, 20);
-Section gemeinde = Section(NEON_BLUE, strip2, 20);
-Section border = Section(NEON_ORANGE, strip3, 20);
+Section krumme = Section(NEON_BLUE, NEON_PURPLE, stripPin1, 60);
+Section gemeinde = Section(NEON_RED, NEON_GREEN, stripPin2, 20);
+Section border = Section(NEON_ORANGE, NEON_ORANGE, stripPin3, 20);
 
 const byte buttonPin = 0;
-int buttonState = 0;
-
 
 
 void setup() {
