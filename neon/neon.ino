@@ -55,16 +55,6 @@ class Section {
         animate();
     }
 
-    /*
-
-    TODO:
-    Animation plan: add tick counter (e.g. 100 states ("frames")?)
-    animation functions use tick counter to calculate values
-    i.e. pulse will calculate brightness based on tick counter
-    i.e. gradient will shift pixels in row based on tick counter
-
-    */
-
     void animate() {
         Serial.println("animating...");
         Serial.println(modeSelection);
@@ -152,16 +142,24 @@ class Section {
 
     void doAnimateGradientBreathing() {
         Serial.println("\t gradient breathing");
-        int r = (int) (colour.r + ((float) animationStep / (animationMaxStep -1)) * (complement.r - colour.r));
-        int g = (int) (colour.g + ((float) animationStep / (animationMaxStep -1)) * (complement.g - colour.g));
-        int b = (int) (colour.b + ((float) animationStep / (animationMaxStep -1)) * (complement.b - colour.b));
+
+        int localAnimationMax = animationMaxStep / 2;
+        int r, g, b;
+        if (animationStep < localAnimationMax) {
+            r = (int) (colour.r + ((float) animationStep / (localAnimationMax -1)) * (complement.r - colour.r));
+            g = (int) (colour.g + ((float) animationStep / (localAnimationMax -1)) * (complement.g - colour.g));
+            b = (int) (colour.b + ((float) animationStep / (localAnimationMax -1)) * (complement.b - colour.b));
+        } else {
+            r = (int) (complement.r + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.r - complement.r));
+            g = (int) (complement.g + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.g - complement.g));
+            b = (int) (complement.b + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.b - complement.b));
+        }
+
         Colour current = Colour(r, g, b);
 
         for (int i = 0; i < stripLength; i++) {
             strip.setPixelColor(i, current.r, current.g, current.b);
         }
-
-        
 
         strip.show();
     }
