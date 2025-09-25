@@ -34,11 +34,11 @@ class Section {
     int stripLength;
     int modeSelection = 0;
 
-    Section(Colour colour, Colour complement, int stripLength, int stripPin) {
+    Section(Colour colour, Colour complement, int stripLength, Adafruit_NeoPixel strip) {
         this->colour = colour;
         this->complement = complement;
         this->stripLength = stripLength;
-        this->strip = Adafruit_NeoPixel(stripLength, stripPin, NEO_GRB + NEO_KHZ800);
+        this->strip = strip;
     }
 
     void initialise() {
@@ -106,7 +106,6 @@ class Section {
             if (i % 2 == 0) { // equivalent of python truthy or falsy values in C++? cast to bool?
                 strip.setPixelColor(i, colour.r, colour.g, colour.b);
             } else {
-                Colour complement = colour.calculateComplent();
                 strip.setPixelColor(i, complement.r, complement.g, complement.b);
             }
         }
@@ -139,10 +138,6 @@ class Section {
     }
 };
 
-int stripPin1 = A4;
-int stripPin2 = A5;
-int stripPin3 = A6;
-
 // https://colorcodes.io/neon-color-codes/
 Colour NEON_BLUE = Colour(77, 77, 255);
 Colour NEON_PURPLE = Colour(199, 36, 177);
@@ -150,9 +145,21 @@ Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
 
-Section krumme = Section(NEON_BLUE, NEON_PURPLE, stripPin1, 60);
-Section gemeinde = Section(NEON_RED, NEON_GREEN, stripPin2, 20);
-Section border = Section(NEON_ORANGE, NEON_ORANGE, stripPin3, 20);
+
+int krummePin = A4;
+int krummeLength = 60;
+Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
+Section krumme = Section(NEON_BLUE, NEON_PURPLE, 60, krummeStrip);
+
+int gemeindePin = A5;
+int gemeindeLength = 20;
+Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
+Section gemeinde = Section(NEON_RED, NEON_GREEN, 20, gemeindeStrip);
+
+int borderPin = A6;
+int borderLength = 20;
+Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
+Section border = Section(NEON_ORANGE, NEON_ORANGE, 20, borderStrip);
 
 const byte buttonPin = 0;
 
