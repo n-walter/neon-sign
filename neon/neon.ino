@@ -51,6 +51,16 @@ class Section {
         animate();
     }
 
+    /*
+
+    TODO:
+    Animation plan: add tick counter (e.g. 100 states ("frames")?)
+    animation functions use tick counter to calculate values
+    i.e. pulse will calculate brightness based on tick counter
+    i.e. gradient will shift pixels in row based on tick counter
+
+    */
+
     void animate() {
         Serial.println("animating...");
         Serial.println(modeSelection);
@@ -63,7 +73,10 @@ class Section {
             Serial.println("\tcase 1");
             doAnimateAlternating();
             break;
-        
+        case 2:
+            Serial.println("\tcase 3");
+            doAnimateGradient();
+            break;
         default:
             Serial.println("\tdefault");
             // if we don't have a handler for this mode, reset to base
@@ -91,15 +104,36 @@ class Section {
             if (i % 2 == 0) { // equivalent of python truthy or falsy values in C++? cast to bool?
                 strip.setPixelColor(i, colour.r, colour.g, colour.b);
             } else {
-                Colour complement = this->colour.calculateComplent();
+                Colour complement = colour.calculateComplent();
                 strip.setPixelColor(i, complement.r, complement.g, complement.b);
             }
         }
         strip.show();
     }
 
+    void doAnimateGradient() {
+        /* https://bsouthga.dev/posts/color-gradients-with-python 
+        
+        That's weird python to start with. Now it's translated to C++ who doesn't know C++. 
+        */
+        Serial.println("\t\tgradient");  
+        Colour complement = colour.calculateComplent();
+        Colour gradient[stripLength];
+        gradient[0] = colour;
+        for (int step = 1; step < stripLength; step++) {
+            int r,g,b;
+            r = (int) (colour.r + ((float) step / (stripLength -1)) * (complement.r - colour.r));
+            g = (int) (colour.g + ((float) step / (stripLength -1)) * (complement.g - colour.g));
+            b = (int) (colour.b + ((float) step / (stripLength -1)) * (complement.b - colour.b));
+            gradient[step] = Colour(r, g, b);
+        }
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, gradient[i].r, gradient[i].g, gradient[i].b);
+        }
+        strip.show();
+    }
+
     void nextAnimation() {
-        Serial.println("nextAnimation");
         modeSelection = modeSelection + 1;
     }
 };
@@ -154,7 +188,6 @@ void loop() {
 }
 
 void button() {
-    Serial.println("--- button ---");
     krumme.nextAnimation();
     gemeinde.nextAnimation();
     border.nextAnimation();
