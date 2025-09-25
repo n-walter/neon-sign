@@ -164,6 +164,34 @@ class Section {
         strip.show();
     }
 
+    void do AnimateGradientSlide() {
+        Serial.println("\t gradient slide")
+
+        Colour gradient[stripLength];
+        gradient[0] = colour;
+
+        // only calculate half of gradient, second half is reverse
+        for (int step = 1; step < stripLength/2; step++) {
+            int r,g,b;
+            r = (int) (colour.r + ((float) step / (stripLength -1)) * (complement.r - colour.r));
+            g = (int) (colour.g + ((float) step / (stripLength -1)) * (complement.g - colour.g));
+            b = (int) (colour.b + ((float) step / (stripLength -1)) * (complement.b - colour.b));
+            gradient[step] = Colour(r, g, b);
+        }
+        for (int i = stripLength / 2; i < stripLength; i++) {
+            gradient[i - (stripLength/2)] = gradient[i];
+        }
+        
+        /* TODO
+        something like
+
+        int offset = (animationStep / animationMaxStep) * stripLength
+
+        not sure that works
+        */
+        
+    }
+
     void nextAnimation() {
         modeSelection = modeSelection + 1;
     }
@@ -206,6 +234,8 @@ void setup() {
     border.initialise();
 
     // set up button
+    // TODO: use this instead of interrupt to avoid hardware bounce
+    // https://github.com/thomasfredericks/Bounce2
     pinMode(buttonPin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(buttonPin), button, RISING); // trigger interrupt when button is released
 
