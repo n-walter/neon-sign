@@ -34,7 +34,7 @@ class Section {
     int stripLength;
     int modeSelection = 0;
     int animationStep = 0;
-    int animationMaxStep = 10; // TODO: increase to 1000
+    int animationMaxStep = 100;
 
     Section(Colour colour, Colour complement, int stripLength, Adafruit_NeoPixel strip) {
         this->colour = colour;
@@ -92,6 +92,11 @@ class Section {
         }
 
         animationStep = (animationStep + 1) % animationMaxStep;
+
+        // I want my f-strings back. Fuck C++, all my homies hate C++
+        char strBuf[50];
+        sprintf(strBuf, "Animation step: %d/%d", animationStep, animationMaxStep);
+        Serial.println(strBuf);
     }
 
     void doAnimateSolid() {
@@ -106,12 +111,20 @@ class Section {
     void doAnimateAlternating() {
         Serial.println("\talternating");
         strip.clear();
-        for (int i = 0; i < stripLength; i++) {
-            if (i % 2 == 0) { // equivalent of python truthy or falsy values in C++? cast to bool?
-                strip.setPixelColor(i, colour.r, colour.g, colour.b);
-            } else {
-                strip.setPixelColor(i, complement.r, complement.g, complement.b);
-            }
+
+        // two lines in python (: 
+        Colour a, b;
+        if (animationStep % 2 == 0) {
+            a = colour;
+            b = complement;
+        } else {
+            a = complement;
+            b = colour;
+        }
+
+        for (int i = 0; i < stripLength; i+=2) {
+            strip.setPixelColor(i, a.r, a.g, a.b);
+            strip.setPixelColor(i+1, b.r, b.g, b.b);
         }
         strip.show();
     }
@@ -119,7 +132,7 @@ class Section {
     void doAnimateGradientConstant() {
         /* https://bsouthga.dev/posts/color-gradients-with-python 
         
-        That's weird python to start with. Now it's translated to C++ who doesn't know C++. 
+        That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
         */
         Serial.println("\tgradient constant");  
         Colour gradient[stripLength];
@@ -206,7 +219,7 @@ void loop() {
     gemeinde.animate();
     border.animate();
 
-    delay(1000); // 1 animation per second for debugging, should easily handle 10, probably 100 later
+    delay(100); // 1 animation per second for debugging, should easily handle 10, probably 100 later
 }
 
 void button() {
