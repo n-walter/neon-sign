@@ -33,6 +33,8 @@ class Section {
     Adafruit_NeoPixel strip;
     int stripLength;
     int modeSelection = 0;
+    int animationStep = 0;
+    int animationMaxStep = 10; // TODO: increase to 1000
 
     Section(Colour colour, Colour complement, int stripLength, Adafruit_NeoPixel strip) {
         this->colour = colour;
@@ -43,13 +45,13 @@ class Section {
 
     void initialise() {
         Serial.println("initialising...");
+        
         // initialise strip
         strip.begin();
         strip.setBrightness(32);
         strip.clear();
         strip.show();
 
-        // 
         animate();
     }
 
@@ -68,19 +70,19 @@ class Section {
         Serial.println(modeSelection);
         switch (modeSelection) {
         case 0:
-            Serial.println("\tcase 0");
             doAnimateSolid();
             break;
         case 1:
-            Serial.println("\tcase 1");
             doAnimateAlternating();
             break;
         case 2:
-            Serial.println("\tcase 3");
-            doAnimateGradient();
+            doAnimateGradientConstant();
+            break;
+        case 3:
+            doAnimateGradientBreathing();
             break;
         default:
-            Serial.println("\tdefault");
+            Serial.println("\tdefault case");
             // if we don't have a handler for this mode, reset to base
             // I don't know how to create a list of function references in C++ and I don't want
             // to constantly update a modulo value while adding new stuff
@@ -88,10 +90,12 @@ class Section {
             animate();
             break;
         }
+
+        animationStep = (animationStep + 1) % animationMaxStep;
     }
 
     void doAnimateSolid() {
-        Serial.println("\t\tsolid");
+        Serial.println("\tsolid");
         strip.clear();
         for (int i = 0; i < stripLength; i++) {
             strip.setPixelColor(i, colour.r, colour.g, colour.b);
@@ -100,7 +104,7 @@ class Section {
     }
 
     void doAnimateAlternating() {
-        Serial.println("\t\talternating");
+        Serial.println("\talternating");
         strip.clear();
         for (int i = 0; i < stripLength; i++) {
             if (i % 2 == 0) { // equivalent of python truthy or falsy values in C++? cast to bool?
@@ -112,12 +116,12 @@ class Section {
         strip.show();
     }
 
-    void doAnimateGradient() {
+    void doAnimateGradientConstant() {
         /* https://bsouthga.dev/posts/color-gradients-with-python 
         
         That's weird python to start with. Now it's translated to C++ who doesn't know C++. 
         */
-        Serial.println("\t\tgradient");  
+        Serial.println("\tgradient constant");  
         Colour gradient[stripLength];
         gradient[0] = colour;
         for (int step = 1; step < stripLength; step++) {
@@ -133,6 +137,22 @@ class Section {
         strip.show();
     }
 
+    void doAnimateGradientBreathing() {
+        Serial.println("\t gradient breathing");
+        int r = (int) (colour.r + ((float) animationStep / (animationMaxStep -1)) * (complement.r - colour.r));
+        int g = (int) (colour.g + ((float) animationStep / (animationMaxStep -1)) * (complement.g - colour.g));
+        int b = (int) (colour.b + ((float) animationStep / (animationMaxStep -1)) * (complement.b - colour.b));
+        Colour current = Colour(r, g, b);
+
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, current.r, current.g, current.b);
+        }
+
+        
+
+        strip.show();
+    }
+
     void nextAnimation() {
         modeSelection = modeSelection + 1;
     }
@@ -145,7 +165,7 @@ Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
 
-
+// setup for strips and sections
 int krummePin = A4;
 int krummeLength = 60;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
@@ -161,6 +181,7 @@ int borderLength = 20;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
 Section border = Section(NEON_ORANGE, NEON_ORANGE, 20, borderStrip);
 
+// setup for buttons and dials
 const byte buttonPin = 0;
 
 
