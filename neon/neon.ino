@@ -1,6 +1,11 @@
 #include <Adafruit_NeoPixel.h>
 #include <stdlib.h>
 #include <Arduino.h>
+#include <LittleVector.h>
+
+
+// global constants
+const int MAX_STRIP_LENGTH = 60;
 
 // TODO: move classes to external .h and .cpp files, this one is getting crowded...
 
@@ -28,10 +33,19 @@ class Colour {
 
 class Section {
     public:
+    // colour stuff
     Colour colour;
     Colour complement;
+
+    LittleVector<Colour> up;
+    LittleVector<Colour> down;
+    LittleVector<Colour> updown;
+
+    // LED stuff
     Adafruit_NeoPixel strip;
     int stripLength;
+
+    // animation helpers
     int modeSelection = 0;
     int animationStep = 0;
     int animationMaxStep = 100;
@@ -41,13 +55,62 @@ class Section {
         this->complement = complement;
         this->stripLength = stripLength;
         this->strip = strip;
+        this->up.reserve(MAX_STRIP_LENGTH);
+        this->down.reserve(MAX_STRIP_LENGTH);
+        this->updown.reserve(MAX_STRIP_LENGTH);
     }
 
     void initialise() {
         Serial.println("initialising...");
 
-        // TODO: use vectors for gradient steps; calculate gradient (as well as reverse and breathing) here instead of during animation
-        
+        // calculate colour gradients based on https://bsouthga.dev/posts/color-gradients-with-python 
+        // That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
+
+        // calculate up gradient, every second colour is added to updown
+        up.push_back(colour);
+        updown.push_back(colour);
+        int r, g, b;
+        for (int led = 1; led < stripLength; led++) {
+            r = (int) (colour.r + ((float) led / (stripLength -1)) * (complement.r - colour.r));
+            g = (int) (colour.g + ((float) led / (stripLength -1)) * (complement.g - colour.g));
+            b = (int) (colour.b + ((float) led / (stripLength -1)) * (complement.b - colour.b));
+            up.push_back(Colour(r, g, b));
+            if (led % 2 == 0) {
+                updown.push_back(Colour(r, g, b));
+            }
+        }
+
+        // calculate down gradient, every second colour is added to updown
+        down.push_back(complement);
+        for (int led = 1; led < stripLength; led++) {
+            r = (int) (complement.r + ((float) led / (stripLength -1)) * (colour.r - complement.r));
+            g = (int) (complement.g + ((float) led / (stripLength -1)) * (colour.g - complement.g));
+            b = (int) (complement.b + ((float) led / (stripLength -1)) * (colour.b - complement.b));
+            up.push_back(Colour(r, g, b));
+            if (led % 2 == 0) {
+                updown.push_back(Colour(r, g, b));
+            }
+        }
+
+        char strBuf[50];
+        Serial.println("vector up:");
+        for (int i = 0; i < up.size(); i++) {
+            sprintf(strBuf, "r: %d g: %d b: %d", up[i].r, up[i].g, up[i].b);
+            Serial.println(strBuf);
+        }
+
+        Serial.println("vector down:");
+        for (int i = 0; i < up.size(); i++) {
+            sprintf(strBuf, "r: %d g: %d b: %d", down[i].r, down[i].g, down[i].b);
+            Serial.println(strBuf);
+        }
+
+        Serial.println("vector updown:");
+        for (int i = 0; i < up.size(); i++) {
+            sprintf(strBuf, "r: %d g: %d b: %d", updown[i].r, updown[i].g, updown[i].b);
+            Serial.println(strBuf);
+        }
+                
         // initialise strip
         strip.begin();
         strip.setBrightness(32);
@@ -62,7 +125,7 @@ class Section {
         char strBuf[50];
         sprintf(strBuf, "Animation step: %d/%d", animationStep, animationMaxStep);
         Serial.println(strBuf);
-        
+
         switch (modeSelection) {
         case 0:
             doAnimateSolid();
@@ -128,21 +191,8 @@ class Section {
         Serial.println("\tgradient constant");  
         strip.clear();
 
-        /* https://bsouthga.dev/posts/color-gradients-with-python 
-        
-        That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
-        */
-        Colour gradient[stripLength];
-        gradient[0] = colour;
-        for (int step = 1; step < stripLength; step++) {
-            int r,g,b;
-            r = (int) (colour.r + ((float) step / (stripLength -1)) * (complement.r - colour.r));
-            g = (int) (colour.g + ((float) step / (stripLength -1)) * (complement.g - colour.g));
-            b = (int) (colour.b + ((float) step / (stripLength -1)) * (complement.b - colour.b));
-            gradient[step] = Colour(r, g, b);
-        }
         for (int i = 0; i < stripLength; i++) {
-            strip.setPixelColor(i, gradient[i].r, gradient[i].g, gradient[i].b);
+            strip.setPixelColor(i, up[i].r, up[i].g, up[i].b);
         }
         strip.show();
     }
@@ -178,6 +228,11 @@ class Section {
 
         Colour gradient[stripLength];
         gradient[0] = colour;
+
+        int peak = animationMaxStep / 2;
+        int r, g, b;
+
+    
 
         // only calculate half of gradient, second half is reverse
         for (int step = 1; step < stripLength/2; step++) {
@@ -243,6 +298,8 @@ int borderPin = A6;
 int borderLength = 20;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
 Section border = Section(DEBUG_ON, DEBUG_OFF, 20, borderStrip);
+
+
 
 // setup for buttons and dials
 const byte buttonPin = 0;
