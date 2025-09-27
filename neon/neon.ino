@@ -113,7 +113,7 @@ class Section {
                 
         // initialise strip
         strip.begin();
-        strip.setBrightness(32);
+        strip.setBrightness(32); // TODO: debug setting --> change/ remove
         strip.clear();
         strip.show();
 
@@ -278,6 +278,9 @@ Section border = Section(DEBUG_ON, DEBUG_OFF, 20, borderStrip);
 
 // setup for buttons and dials
 const byte buttonPin = 0;
+const byte potPin = A3;
+int animationDelay = 100;
+const int animationDelayMax = 500; // slowest: 1000/val steps per second. fastest: implicit 1 ms delay --> 1000 steps per second
 
 
 void setup() {
@@ -295,6 +298,8 @@ void setup() {
     pinMode(buttonPin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(buttonPin), button, RISING); // trigger interrupt when button is released
 
+    // set up potentiometer
+    pinMode(potPin, INPUT);
     Serial.println("setup end");
 }
 
@@ -302,8 +307,13 @@ void loop() {
     krumme.animate();
     gemeinde.animate();
     border.animate();
-
-    delay(100); // 1 animation per second for debugging, should easily handle 10, probably 100 later
+    
+    int potValue = analogRead(potPin); /// 10 bit
+    // normalize from 0-1023 to 1-1000
+    float percent = (float) potValue / 1023;
+    animationDelay = percent * animationDelayMax;
+    
+    delay(animationDelay);
 }
 
 void button() {
