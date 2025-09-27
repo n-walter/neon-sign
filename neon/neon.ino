@@ -58,8 +58,11 @@ class Section {
     }
 
     void animate() {
-        Serial.println("animating...");
-        Serial.println(modeSelection);
+        // I want my f-strings back. Fuck C++, all my homies hate C++
+        char strBuf[50];
+        sprintf(strBuf, "Animation step: %d/%d", animationStep, animationMaxStep);
+        Serial.println(strBuf);
+        
         switch (modeSelection) {
         case 0:
             doAnimateSolid();
@@ -88,10 +91,6 @@ class Section {
 
         animationStep = (animationStep + 1) % animationMaxStep;
 
-        // I want my f-strings back. Fuck C++, all my homies hate C++
-        char strBuf[50];
-        sprintf(strBuf, "Animation step: %d/%d", animationStep, animationMaxStep);
-        Serial.println(strBuf);
     }
 
     void doAnimateSolid() {
@@ -189,14 +188,14 @@ class Section {
             gradient[step] = Colour(r, g, b);
         }
         for (int step = stripLength / 2; step < stripLength; step++) {
-            gradient[step] = gradient[step - stripLength / 2];
+            gradient[step] = gradient[stripLength - step]; // wrong: starting again from front to back instead of back to front
         }
         
         float animationPercent = (float) animationStep / animationMaxStep;
         int offset = (int) (animationPercent * stripLength);
 
         char strBuf[100];
-        sprintf(strBuf, "animation percent: %f offset: %d", animationPercent, offset);
+        sprintf(strBuf, "offset: %d", offset);
         Serial.println(strBuf);
 
         for (int i = 0; i < stripLength; i++) {
@@ -206,7 +205,7 @@ class Section {
             r = gradient[colourIndex].r;
             g = gradient[colourIndex].g;
             b = gradient[colourIndex].b;
-            sprintf(strBuf2, "colourIndex: %d r: %d g: %d b: %d", colourIndex, r, g, b);
+            sprintf(strBuf2, "index: %d colourIndex: %d r: %d g: %d b: %d", i, colourIndex, r, g, b);
             Serial.println(strBuf2);
             strip.setPixelColor(i, r, g, b);
         }
