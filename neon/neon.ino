@@ -4,8 +4,6 @@
 #include <LittleVector.h>
 
 
-// global constants
-const int MAX_STRIP_LENGTH = 60;
 
 // TODO: move classes to external .h and .cpp files, this one is getting crowded...
 
@@ -55,9 +53,9 @@ class Section {
         this->complement = complement;
         this->stripLength = stripLength;
         this->strip = strip;
-        this->up.reserve(MAX_STRIP_LENGTH);
-        this->down.reserve(MAX_STRIP_LENGTH);
-        this->updown.reserve(MAX_STRIP_LENGTH);
+        this->up.reserve(stripLength);
+        this->down.reserve(stripLength);
+        this->updown.reserve(stripLength);
     }
 
     void initialise() {
@@ -86,11 +84,13 @@ class Section {
             r = (int) (complement.r + ((float) led / (stripLength -1)) * (colour.r - complement.r));
             g = (int) (complement.g + ((float) led / (stripLength -1)) * (colour.g - complement.g));
             b = (int) (complement.b + ((float) led / (stripLength -1)) * (colour.b - complement.b));
-            up.push_back(Colour(r, g, b));
+            down.push_back(Colour(r, g, b));
             if (led % 2 == 0) {
                 updown.push_back(Colour(r, g, b));
             }
         }
+        updown.push_back(colour);
+
 
         char strBuf[50];
         Serial.println("vector up:");
@@ -100,13 +100,13 @@ class Section {
         }
 
         Serial.println("vector down:");
-        for (int i = 0; i < up.size(); i++) {
+        for (int i = 0; i < down.size(); i++) {
             sprintf(strBuf, "r: %d g: %d b: %d", down[i].r, down[i].g, down[i].b);
             Serial.println(strBuf);
         }
 
         Serial.println("vector updown:");
-        for (int i = 0; i < up.size(); i++) {
+        for (int i = 0; i < updown.size(); i++) {
             sprintf(strBuf, "r: %d g: %d b: %d", updown[i].r, updown[i].g, updown[i].b);
             Serial.println(strBuf);
         }
@@ -201,6 +201,7 @@ class Section {
         Serial.println("\t gradient breathing");
         strip.clear();
 
+        // can't use precalculated gradients, we want more detail for breathing
         int localAnimationMax = animationMaxStep / 2;
         int r, g, b;
         if (animationStep < localAnimationMax) {
@@ -226,42 +227,16 @@ class Section {
         Serial.println("\t gradient slide");
         strip.clear();
 
-        Colour gradient[stripLength];
-        gradient[0] = colour;
-
-        int peak = animationMaxStep / 2;
-        int r, g, b;
-
-    
-
-        // only calculate half of gradient, second half is reverse
-        for (int step = 1; step < stripLength/2; step++) {
-            int r,g,b;
-            r = (int) (colour.r + ((float) step / (stripLength -1)) * (complement.r - colour.r));
-            g = (int) (colour.g + ((float) step / (stripLength -1)) * (complement.g - colour.g));
-            b = (int) (colour.b + ((float) step / (stripLength -1)) * (complement.b - colour.b));
-            gradient[step] = Colour(r, g, b);
-        }
-        for (int step = stripLength / 2; step < stripLength; step++) {
-            gradient[step] = gradient[stripLength - step]; // wrong: starting again from front to back instead of back to front
-        }
-        
         float animationPercent = (float) animationStep / animationMaxStep;
         int offset = (int) (animationPercent * stripLength);
-
-        char strBuf[100];
-        sprintf(strBuf, "offset: %d", offset);
-        Serial.println(strBuf);
 
         for (int i = 0; i < stripLength; i++) {
             int colourIndex = (i + offset) % stripLength;
             char strBuf2[100];
             int r, g, b;
-            r = gradient[colourIndex].r;
-            g = gradient[colourIndex].g;
-            b = gradient[colourIndex].b;
-            sprintf(strBuf2, "index: %d colourIndex: %d r: %d g: %d b: %d", i, colourIndex, r, g, b);
-            Serial.println(strBuf2);
+            r = updown[colourIndex].r;
+            g = updown[colourIndex].g;
+            b = updown[colourIndex].b;
             strip.setPixelColor(i, r, g, b);
         }
 
