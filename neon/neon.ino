@@ -45,6 +45,8 @@ class Section {
 
     void initialise() {
         Serial.println("initialising...");
+
+        // TODO: use vectors for gradient steps; calculate gradient (as well as reverse and breathing) here instead of during animation
         
         // initialise strip
         strip.begin();
@@ -71,6 +73,9 @@ class Section {
         case 3:
             doAnimateGradientBreathing();
             break;
+        case 4: 
+            doAnimateGradientSlide();
+            break;
         default:
             Serial.println("\tdefault case");
             // if we don't have a handler for this mode, reset to base
@@ -92,6 +97,7 @@ class Section {
     void doAnimateSolid() {
         Serial.println("\tsolid");
         strip.clear();
+
         for (int i = 0; i < stripLength; i++) {
             strip.setPixelColor(i, colour.r, colour.g, colour.b);
         }
@@ -120,11 +126,13 @@ class Section {
     }
 
     void doAnimateGradientConstant() {
+        Serial.println("\tgradient constant");  
+        strip.clear();
+
         /* https://bsouthga.dev/posts/color-gradients-with-python 
         
         That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
         */
-        Serial.println("\tgradient constant");  
         Colour gradient[stripLength];
         gradient[0] = colour;
         for (int step = 1; step < stripLength; step++) {
@@ -142,6 +150,7 @@ class Section {
 
     void doAnimateGradientBreathing() {
         Serial.println("\t gradient breathing");
+        strip.clear();
 
         int localAnimationMax = animationMaxStep / 2;
         int r, g, b;
@@ -164,8 +173,9 @@ class Section {
         strip.show();
     }
 
-    void do AnimateGradientSlide() {
-        Serial.println("\t gradient slide")
+    void doAnimateGradientSlide() {
+        Serial.println("\t gradient slide");
+        strip.clear();
 
         Colour gradient[stripLength];
         gradient[0] = colour;
@@ -178,18 +188,30 @@ class Section {
             b = (int) (colour.b + ((float) step / (stripLength -1)) * (complement.b - colour.b));
             gradient[step] = Colour(r, g, b);
         }
-        for (int i = stripLength / 2; i < stripLength; i++) {
-            gradient[i - (stripLength/2)] = gradient[i];
+        for (int step = stripLength / 2; step < stripLength; step++) {
+            gradient[step] = gradient[step - stripLength / 2];
         }
         
-        /* TODO
-        something like
+        float animationPercent = (float) animationStep / animationMaxStep;
+        int offset = (int) (animationPercent * stripLength);
 
-        int offset = (animationStep / animationMaxStep) * stripLength
+        char strBuf[100];
+        sprintf(strBuf, "animation percent: %f offset: %d", animationPercent, offset);
+        Serial.println(strBuf);
 
-        not sure that works
-        */
-        
+        for (int i = 0; i < stripLength; i++) {
+            int colourIndex = (i + offset) % stripLength;
+            char strBuf2[100];
+            int r, g, b;
+            r = gradient[colourIndex].r;
+            g = gradient[colourIndex].g;
+            b = gradient[colourIndex].b;
+            sprintf(strBuf2, "colourIndex: %d r: %d g: %d b: %d", colourIndex, r, g, b);
+            Serial.println(strBuf2);
+            strip.setPixelColor(i, r, g, b);
+        }
+
+        strip.show();
     }
 
     void nextAnimation() {
@@ -203,6 +225,9 @@ Colour NEON_PURPLE = Colour(199, 36, 177);
 Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
+
+Colour DEBUG_ON = Colour(255, 255, 255);
+Colour DEBUG_OFF = Colour(0, 0, 0);
 
 // setup for strips and sections
 int krummePin = A4;
@@ -218,7 +243,7 @@ Section gemeinde = Section(NEON_RED, NEON_GREEN, 20, gemeindeStrip);
 int borderPin = A6;
 int borderLength = 20;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
-Section border = Section(NEON_ORANGE, NEON_ORANGE, 20, borderStrip);
+Section border = Section(DEBUG_ON, DEBUG_OFF, 20, borderStrip);
 
 // setup for buttons and dials
 const byte buttonPin = 0;
