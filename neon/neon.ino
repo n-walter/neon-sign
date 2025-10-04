@@ -32,6 +32,7 @@ class Colour {
 class Section {
     public:
     // colour stuff
+    Colour initial;
     Colour colour;
     Colour complement;
 
@@ -113,7 +114,7 @@ class Section {
                 
         // initialise strip
         strip.begin();
-        strip.setBrightness(32); // TODO: debug setting --> change/ remove
+        strip.setBrightness(255); // TODO: debug setting --> change/ remove
         strip.clear();
         strip.show();
 
@@ -141,6 +142,12 @@ class Section {
             break;
         case 4: 
             doAnimateGradientSlide();
+            break;
+        case 5:
+            doAnimateRandomALl();
+            break;
+        case 6:
+            doAnimateRandomSingle();
             break;
         default:
             Serial.println("\tdefault case");
@@ -243,6 +250,33 @@ class Section {
         strip.show();
     }
 
+    void doAnimateRandomALl() {
+        Serial.println("\ all random");
+        strip.clear();
+        int r, g, b;
+        for (int i = 0; i < stripLength; i++) {
+            r = rand() % 255;
+            g = rand() % 255;
+            b = rand() % 255;
+
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
+    void doAnimateRandomSingle() {
+        Serial.println("\ single random");
+        strip.clear();
+        int r, g, b;
+        r = rand() % 255;
+        g = rand() % 255;
+        b = rand() % 255;
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
     void nextAnimation() {
         modeSelection = modeSelection + 1;
     }
@@ -257,6 +291,8 @@ Colour NEON_ORANGE = Colour(255, 173, 0);
 
 Colour DEBUG_ON = Colour(255, 255, 255);
 Colour DEBUG_OFF = Colour(0, 0, 0);
+
+Colour TEST_RED = Colour(255, 0, 0);
 
 // setup for strips and sections
 int krummePin = A4;
@@ -277,29 +313,35 @@ Section border = Section(DEBUG_ON, DEBUG_OFF, 20, borderStrip);
 
 
 // setup for buttons and dials
-const byte buttonPin = 0;
-const byte potPin = A3;
+const byte animationButtonPin = 0;
+const byte borderOffPin = 1;
+const byte animationSpeedPotPin = A3;
 int animationDelay = 100;
 const int animationDelayMax = 500; // slowest: 1000/val steps per second. fastest: implicit 1 ms delay --> 1000 steps per second
 
 
+
+
 void setup() {
     Serial.begin(9600);
-    delay(5000);
+    delay(5000); // TODO: debug setting --> change/ remove
     Serial.println("setup start");
 
     krumme.initialise();
     gemeinde.initialise();
     border.initialise();
 
-    // set up button
+    // set up buttons
     // TODO: use this instead of interrupt to avoid hardware bounce
     // https://github.com/thomasfredericks/Bounce2
-    pinMode(buttonPin, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(buttonPin), button, RISING); // trigger interrupt when button is released
+    pinMode(animationButtonPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(animationButtonPin), nextAnimationButton, RISING); // trigger interrupt when button is released
+    
+    pinMode(borderOffPin, INPUT_PULLUP);
+
 
     // set up potentiometer
-    pinMode(potPin, INPUT);
+    pinMode(animationSpeedPotPin, INPUT);
     Serial.println("setup end");
 }
 
@@ -308,7 +350,7 @@ void loop() {
     gemeinde.animate();
     border.animate();
     
-    int potValue = analogRead(potPin); /// 10 bit
+    int potValue = analogRead(animationSpeedPotPin); /// 10 bit
     // normalize from 0-1023 to 1-1000
     float percent = (float) potValue / 1023;
     animationDelay = percent * animationDelayMax;
@@ -316,8 +358,13 @@ void loop() {
     delay(animationDelay);
 }
 
-void button() {
+void nextAnimationButton() {
     krumme.nextAnimation();
     gemeinde.nextAnimation();
     border.nextAnimation();
 }
+
+void borderOffButton() {
+    // TODO: border.strip.setBrightness(0);
+}
+
