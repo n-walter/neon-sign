@@ -22,7 +22,9 @@ class ColourPair {
         this->up.reserve(stripLength);
         this->down.reserve(stripLength);
         this->updown.reserve(stripLength);
+    }
 
+    void initialise(int stripLength) {
         // calculate colour gradients based on https://bsouthga.dev/posts/color-gradients-with-python 
         // That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
 
@@ -80,13 +82,9 @@ class Colour {
 class Section {
     public:
     // colour stuff
-    Colour initial;
-    Colour colour;
-    Colour complement;
-
-    LittleVector<Colour> up;
-    LittleVector<Colour> down;
-    LittleVector<Colour> updown;
+    ColourPair pairA;
+    ColourPair pairB;
+    ColourPair pairC;
 
     // LED stuff
     Adafruit_NeoPixel strip;
@@ -97,14 +95,13 @@ class Section {
     int animationStep = 0;
     int animationMaxStep = 100;
 
-    Section(Colour colour, Colour complement, int stripLength, Adafruit_NeoPixel strip) {
-        this->colour = colour;
-        this->complement = complement;
+    Section(ColourPair pairA, ColourPair pairB, ColourPair pairC, int stripLength, Adafruit_NeoPixel strip) {
+        this->pairA = pairA;
+        this->pairB = pairB;
+        this->pairC = pairC;
+        
         this->stripLength = stripLength;
         this->strip = strip;
-        this->up.reserve(stripLength);
-        this->down.reserve(stripLength);
-        this->updown.reserve(stripLength);
     }
 
     void initialise() {
@@ -128,24 +125,27 @@ class Section {
 
         switch (modeSelection) {
         case 0:
-            doAnimateSolid();
+            doAnimateSolid(true);
             break;
         case 1:
-            doAnimateAlternating();
+            doAnimateSolid(false);
             break;
         case 2:
-            doAnimateGradientConstant();
+            doAnimateAlternating(pairA, 5);
             break;
         case 3:
-            doAnimateGradientBreathing();
+            doAnimateAlternating(pairB, 5);
             break;
-        case 4: 
+        case 4:
+            doAnimateAlternating(pairC, 5);
+            break;
+        case 5: 
             doAnimateGradientSlide();
             break;
-        case 5:
+        case 6:
             doAnimateRandomALl();
             break;
-        case 6:
+        case 7:
             doAnimateRandomSingle();
             break;
         default:
@@ -162,37 +162,45 @@ class Section {
 
     }
 
-    void doAnimateSolid() {
+    void doAnimateSolid(bool reverse) {
         Serial.println("\tsolid");
         strip.clear();
 
         for (int i = 0; i < stripLength; i++) {
-            strip.setPixelColor(i, colour.r, colour.g, colour.b);
+            if (reverse) {
+                strip.setPixelColor(i, pairA.colour.r, pairA.colour.g, pairA.colour.b);
+            } else {
+                strip.setPixelColor(i, pairA.complement.r, pairA.complement.g, pairA.complement.b);
+            }
         }
         strip.show();
     }
 
-    void doAnimateAlternating() {
+
+
+    void doAnimateAlternating(ColourPair pair; int blockSize = 1) {
         Serial.println("\talternating");
         strip.clear();
 
         // two lines in python (: 
         Colour a, b;
         if (animationStep % 2 == 0) {
-            a = colour;
-            b = complement;
+            a = pair.colour;
+            b = pair.complement;
         } else {
-            a = complement;
-            b = colour;
+            a = pair.complement;
+            b = pair.colour;
         }
 
-        for (int i = 0; i < stripLength; i+=2) {
+        for (int i = 0; i < stripLength; i += (2 * blockSize)) {
             strip.setPixelColor(i, a.r, a.g, a.b);
-            strip.setPixelColor(i+1, b.r, b.g, b.b);
+            strip.setPixelColor(i+blockSize, b.r, b.g, b.b);
         }
         strip.show();
     }
 
+    /*
+    unused
     void doAnimateGradientConstant() {
         Serial.println("\tgradient constant");  
         strip.clear();
@@ -202,7 +210,9 @@ class Section {
         }
         strip.show();
     }
+    */
 
+    /* unused
     void doAnimateGradientBreathing() {
         Serial.println("\t gradient breathing");
         strip.clear();
@@ -228,8 +238,9 @@ class Section {
 
         strip.show();
     }
+    */
 
-    void doAnimateGradientSlide() {
+    void doAnimateGradientSlide(ColourPair pair) {
         Serial.println("\t gradient slide");
         strip.clear();
 
@@ -240,9 +251,9 @@ class Section {
             int colourIndex = (i + offset) % stripLength;
             char strBuf2[100];
             int r, g, b;
-            r = updown[colourIndex].r;
-            g = updown[colourIndex].g;
-            b = updown[colourIndex].b;
+            r = pair.updown[colourIndex].r;
+            g = pair.updown[colourIndex].g;
+            b = pair.updown[colourIndex].b;
             strip.setPixelColor(i, r, g, b);
         }
 
@@ -285,6 +296,7 @@ class Section {
 Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_WHITE = Colour(255, 255, 255);
 ColourPair PAIR_1 = ColourPair(NEON_WHITE, NEON_RED);
+ColourPair PAIR_1_Reverse = ColourPair(NEON_RED, NEON_WHITE);
 
 Colour NEON_BLUE = Colour(77, 77, 255);
 Colour NEON_PURPLE = Colour(199, 36, 177);
