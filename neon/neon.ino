@@ -7,6 +7,54 @@
 
 // TODO: move classes to external .h and .cpp files, this one is getting crowded...
 
+class ColourPair {
+    public:
+    Colour colour;
+    Colour complement;
+
+    LittleVector<Colour> up;
+    LittleVector<Colour> down;
+    LittleVector<Colour> updown;
+
+    ColourPair(Colour colour, Colour complement) {
+        this->colour= colour;
+        this->complement = complement;
+        this->up.reserve(stripLength);
+        this->down.reserve(stripLength);
+        this->updown.reserve(stripLength);
+
+        // calculate colour gradients based on https://bsouthga.dev/posts/color-gradients-with-python 
+        // That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
+
+        // calculate up gradient, every second colour is added to updown
+        up.push_back(colour);
+        updown.push_back(colour);
+        int r, g, b;
+        for (int led = 1; led < stripLength; led++) {
+            r = (int) (colour.r + ((float) led / (stripLength -1)) * (complement.r - colour.r));
+            g = (int) (colour.g + ((float) led / (stripLength -1)) * (complement.g - colour.g));
+            b = (int) (colour.b + ((float) led / (stripLength -1)) * (complement.b - colour.b));
+            up.push_back(Colour(r, g, b));
+            if (led % 2 == 0) {
+                updown.push_back(Colour(r, g, b));
+            }
+        }
+
+        // calculate down gradient, every second colour is added to updown
+        down.push_back(complement);
+        for (int led = 1; led < stripLength; led++) {
+            r = (int) (complement.r + ((float) led / (stripLength -1)) * (colour.r - complement.r));
+            g = (int) (complement.g + ((float) led / (stripLength -1)) * (colour.g - complement.g));
+            b = (int) (complement.b + ((float) led / (stripLength -1)) * (colour.b - complement.b));
+            down.push_back(Colour(r, g, b));
+            if (led % 2 == 0) {
+                updown.push_back(Colour(r, g, b));
+            }
+        }
+        updown.push_back(colour);
+    }
+}
+
 class Colour {
     public:
     int r, g, b;
@@ -60,61 +108,12 @@ class Section {
     }
 
     void initialise() {
-        Serial.println("initialising...");
+        Serial.println("initialising strip...");
 
-        // calculate colour gradients based on https://bsouthga.dev/posts/color-gradients-with-python 
-        // That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
-
-        // calculate up gradient, every second colour is added to updown
-        up.push_back(colour);
-        updown.push_back(colour);
-        int r, g, b;
-        for (int led = 1; led < stripLength; led++) {
-            r = (int) (colour.r + ((float) led / (stripLength -1)) * (complement.r - colour.r));
-            g = (int) (colour.g + ((float) led / (stripLength -1)) * (complement.g - colour.g));
-            b = (int) (colour.b + ((float) led / (stripLength -1)) * (complement.b - colour.b));
-            up.push_back(Colour(r, g, b));
-            if (led % 2 == 0) {
-                updown.push_back(Colour(r, g, b));
-            }
-        }
-
-        // calculate down gradient, every second colour is added to updown
-        down.push_back(complement);
-        for (int led = 1; led < stripLength; led++) {
-            r = (int) (complement.r + ((float) led / (stripLength -1)) * (colour.r - complement.r));
-            g = (int) (complement.g + ((float) led / (stripLength -1)) * (colour.g - complement.g));
-            b = (int) (complement.b + ((float) led / (stripLength -1)) * (colour.b - complement.b));
-            down.push_back(Colour(r, g, b));
-            if (led % 2 == 0) {
-                updown.push_back(Colour(r, g, b));
-            }
-        }
-        updown.push_back(colour);
-
-
-        char strBuf[50];
-        Serial.println("vector up:");
-        for (int i = 0; i < up.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", up[i].r, up[i].g, up[i].b);
-            Serial.println(strBuf);
-        }
-
-        Serial.println("vector down:");
-        for (int i = 0; i < down.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", down[i].r, down[i].g, down[i].b);
-            Serial.println(strBuf);
-        }
-
-        Serial.println("vector updown:");
-        for (int i = 0; i < updown.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", updown[i].r, updown[i].g, updown[i].b);
-            Serial.println(strBuf);
-        }
                 
         // initialise strip
         strip.begin();
-        strip.setBrightness(255); // TODO: debug setting --> change/ remove
+        strip.setBrightness(32); // TODO: debug setting --> change/ remove
         strip.clear();
         strip.show();
 
@@ -283,27 +282,29 @@ class Section {
 };
 
 // https://colorcodes.io/neon-color-codes/
+Colour NEON_RED = Colour(210, 39, 48);
+Colour NEON_WHITE = Colour(255, 255, 255);
+ColourPair PAIR_1 = ColourPair(NEON_WHITE, NEON_RED);
+
 Colour NEON_BLUE = Colour(77, 77, 255);
 Colour NEON_PURPLE = Colour(199, 36, 177);
-Colour NEON_RED = Colour(210, 39, 48);
+ColourPair PAIR_2 = ColourPair(NEON_BLUE, NEON_PURPLE);
+
 Colour NEON_GREEN = Colour(68, 214, 44);
-Colour NEON_ORANGE = Colour(255, 173, 0);
+Colour NEON_ORANGE = Colour(255, 173, 0)
+ColourPair PAIR_3 = ColourPair(NEON_GREEN, NEON_ORANGE);
 
-Colour DEBUG_ON = Colour(255, 255, 255);
-Colour DEBUG_OFF = Colour(0, 0, 0);
-
-Colour TEST_RED = Colour(255, 0, 0);
 
 // setup for strips and sections
 int krummePin = A4;
 int krummeLength = 60;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
-Section krumme = Section(NEON_BLUE, NEON_PURPLE, 60, krummeStrip);
+Section krumme = Section(NEON_BLUE, NEON_YELLOW, 60, krummeStrip);
 
 int gemeindePin = A5;
 int gemeindeLength = 20;
 Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
-Section gemeinde = Section(NEON_RED, NEON_GREEN, 20, gemeindeStrip);
+Section gemeinde = Section(NEON_GREEN, NEON_ORANGE, 20, gemeindeStrip);
 
 int borderPin = A6;
 int borderLength = 20;
