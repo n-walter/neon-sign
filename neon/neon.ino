@@ -85,7 +85,7 @@ class ColourPair {
 class Section {
     public:
     // colour stuff
-    ColourPair pair_a, pair_b, pair_c, pair_active;
+    ColourPair pair_a, pair_b, pair_c;
 
     // LED stuff
     Adafruit_NeoPixel strip;
@@ -114,7 +114,7 @@ class Section {
 
         // initialise strip
         strip.begin();
-        strip.setBrightness(32); // TODO: debug setting --> change/ remove
+        strip.setBrightness(200); // TODO: debug setting --> change/ remove
         strip.clear();
         strip.show();
 
@@ -138,26 +138,26 @@ class Section {
             doAnimateGradientSlide(pair_a);
             break;
         case 3:
-            doAnimateAlternating(pair_a, 1);
+            doAnimateAlternating(pair_a);
             break;
         case 4:
             doAnimateGradientSlide(pair_b);
             break;
         case 5:
-            doAnimateAlternating(pair_b, 1);
+            doAnimateAlternating(pair_b);
             break;
         case 6:
             doAnimateGradientSlide(pair_c);
             break;
         case 7:
-            doAnimateAlternating(pair_c, 1);
+            doAnimateAlternating(pair_c);
             break;
-        case 8:
-            doAnimateRandomALl();
-            break;
-        case 9:
-            doAnimateRandomSingle();
-            break;
+        // case 8:
+        //     doAnimateRandomALl();
+        //     break;
+        // case 9:
+        //     doAnimateRandomSingle();
+        //     break;
         default:
             Serial.println("\tdefault case");
             // if we don't have a handler for this mode, reset to base
@@ -190,29 +190,35 @@ class Section {
         strip.show();
     }
 
-    void doAnimateAlternating(ColourPair active_pair, int blockSize = 1) {
+    void doAnimateAlternating(ColourPair active_pair) {
         // TODO: anything but blocksize = 1 does not work, debug later
         Serial.println("\talternating");
         strip.clear();
 
+        if (! (animationStep % 10 == 0)) {
+            return;
+        }
+        
+        int localAnimationStep = animationStep / 10;
+
         // two lines in python (: 
         Colour a, b;
-        if (animationStep % 2 == 0) {
-            a = pair_active.colour;
-            b = pair_active.complement;
+        if (localAnimationStep % 2 == 0) {
+            a = active_pair.colour;
+            b = active_pair.complement;
         } else {
-            a = pair_active.complement;
-            b = pair_active.colour;
+            a = active_pair.complement;
+            b = active_pair.colour;
         }
-
-        for (int i = 0; i < stripLength; i += (2 * blockSize)) {
+        for (int i = 0; i < stripLength; i+=2) {
             strip.setPixelColor(i, a.r, a.g, a.b);
-            strip.setPixelColor(i+blockSize, b.r, b.g, b.b);
+            strip.setPixelColor(i+1, b.r, b.g, b.b);
         }
+        
         strip.show();
     }
 
-    void doAnimateGradientSlide(ColourPair pair_active) {
+    void doAnimateGradientSlide(ColourPair active_pair) {
         Serial.println("\t gradient slide");
         strip.clear();
 
@@ -223,9 +229,9 @@ class Section {
             int colourIndex = (i + offset) % stripLength;
             char strBuf2[100];
             int r, g, b;
-            r = pair_active.updown[colourIndex].r;
-            g = pair_active.updown[colourIndex].g;
-            b = pair_active.updown[colourIndex].b;
+            r = active_pair.updown[colourIndex].r;
+            g = active_pair.updown[colourIndex].g;
+            b = active_pair.updown[colourIndex].b;
             strip.setPixelColor(i, r, g, b);
         }
 
@@ -234,7 +240,12 @@ class Section {
 
     void doAnimateRandomALl() {
         Serial.println("\t all random");
+        // if (! (animationStep % 10 == 0)) {
+        //     return;
+        // }
         strip.clear();
+
+
         int r, g, b;
         for (int i = 0; i < stripLength; i++) {
             r = rand() % 255;
@@ -248,7 +259,12 @@ class Section {
 
     void doAnimateRandomSingle() {
         Serial.println("\t single random");
+        // if (! (animationStep % 10 == 0)) {
+        //     return;
+        // }
         strip.clear();
+
+
         int r, g, b;
         r = rand() % 255;
         g = rand() % 255;
@@ -265,7 +281,7 @@ class Section {
 };
 
 // https://colorcodes.io/neon-color-codes/
-Colour NEON_RED = Colour(210, 39, 48);
+Colour NEON_RED = Colour(255, 0, 0);
 Colour NEON_WHITE = Colour(255, 255, 255);
 
 Colour NEON_BLUE = Colour(77, 77, 255);
@@ -275,30 +291,29 @@ Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
 
 // setup for strips and sections
-int krummePin = A4;
-int krummeLength = 20;
+int krummePin = A0;
+int krummeLength = 26;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
 Section krumme = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREEN, NEON_ORANGE, krummeLength, krummeStrip);
 
-int gemeindePin = A5;
-int gemeindeLength = 20;
+int gemeindePin = A3;
+int gemeindeLength = 17;
 Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
 Section gemeinde = Section(NEON_WHITE, NEON_RED, NEON_PURPLE, NEON_BLUE, NEON_ORANGE, NEON_GREEN, gemeindeLength, gemeindeStrip);
 
 int borderPin = A6;
-int borderLength = 60;
+int borderLength = 109;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
 Section border = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREEN, NEON_ORANGE, borderLength, borderStrip);
 
 // setup for buttons and dials
-const byte innerButtonPin = 0;
-const byte borderButtonPin = 1;
-const int animationDelay = 50;
+const byte innerButtonPin = 1;
+const byte borderButtonPin = 5;
+const int animationDelay = 20;
 
 
 void setup() {
     Serial.begin(9600);
-    delay(5000);
     Serial.println("setup start");
 
     krumme.initialise();
@@ -329,8 +344,12 @@ void loop() {
 void innerButtonInterrupt() {
     krumme.nextAnimation();
     gemeinde.nextAnimation();
+
+    delay(25);
 }
 
 void borderButtonInterrupt() {
     border.nextAnimation();
+
+    delay(25);
 }
