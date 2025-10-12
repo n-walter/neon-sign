@@ -195,6 +195,8 @@ class Section {
         Serial.println("\talternating");
         strip.clear();
 
+        int blocksize = 5;
+
         if (! (animationStep % 10 == 0)) {
             return;
         }
@@ -210,9 +212,11 @@ class Section {
             a = active_pair.complement;
             b = active_pair.colour;
         }
-        for (int i = 0; i < stripLength; i+=2) {
-            strip.setPixelColor(i, a.r, a.g, a.b);
-            strip.setPixelColor(i+1, b.r, b.g, b.b);
+        for (int i = 0; i < stripLength; i+=(blocksize * 2)) {
+            for (int j = 0; j < blocksize; j++) {
+                strip.setPixelColor(i + j, a.r, a.g, a.b);
+                strip.setPixelColor(i + j + blocksize, b.r, b.g, b.b);
+            }
         }
         
         strip.show();
