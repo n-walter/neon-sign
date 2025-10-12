@@ -135,15 +135,27 @@ class Section {
             doAnimateSolid(pair_a, true);
             break;
         case 2:
-            doAnimateAlternating(pair_a);
-            break;
-        case 3: 
             doAnimateGradientSlide(pair_a);
             break;
+        case 3:
+            doAnimateAlternating(pair_a, 1);
+            break;
         case 4:
-            doAnimateRandomALl();
+            doAnimateGradientSlide(pair_b);
             break;
         case 5:
+            doAnimateAlternating(pair_b, 1);
+            break;
+        case 6:
+            doAnimateGradientSlide(pair_c);
+            break;
+        case 7:
+            doAnimateAlternating(pair_c, 1);
+            break;
+        case 8:
+            doAnimateRandomALl();
+            break;
+        case 9:
             doAnimateRandomSingle();
             break;
         default:
@@ -179,6 +191,7 @@ class Section {
     }
 
     void doAnimateAlternating(ColourPair active_pair, int blockSize = 1) {
+        // TODO: anything but blocksize = 1 does not work, debug later
         Serial.println("\talternating");
         strip.clear();
 
@@ -251,53 +264,6 @@ class Section {
     }
 };
 
-class InnerSection: public Section {
-    public: 
-    InnerSection(Colour a1, Colour a2, Colour b1, Colour b2, Colour c1, Colour c2, int stripLength, Adafruit_NeoPixel strip) : Section(a1, a2, b1, b2, c1, c2, stripLength, strip) {
-        
-    }
-
-
-    void animate() {
-        // I want my f-strings back. Fuck C++, all my homies hate C++
-        char strBuf[50];
-        sprintf(strBuf, "Animation step: %d/%d", animationStep, animationMaxStep);
-        Serial.println(strBuf);
-
-        switch (modeSelection) {
-        case 0:
-            doAnimateSolid(pair_a, false);
-            break;
-        case 1:
-            doAnimateSolid(pair_a, true);
-            break;
-        case 2:
-            doAnimateAlternating(pair_a);
-            break;
-        case 3: 
-            doAnimateGradientSlide(pair_a);
-            break;
-        case 4:
-            doAnimateRandomALl();
-            break;
-        case 5:
-            doAnimateRandomSingle();
-            break;
-        default:
-            Serial.println("\tdefault case");
-            // if we don't have a handler for this mode, reset to base
-            // I don't know how to create a list of function references in C++ and I don't want
-            // to constantly update a modulo value while adding new stuff
-            modeSelection = 0;
-            animate();
-            break;
-        }
-
-        animationStep = (animationStep + 1) % animationMaxStep;
-    }
-};
-
-
 // https://colorcodes.io/neon-color-codes/
 Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_WHITE = Colour(255, 255, 255);
@@ -327,7 +293,7 @@ Section border = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREE
 // setup for buttons and dials
 const byte innerButtonPin = 0;
 const byte borderButtonPin = 1;
-const int animationDelay = 20;
+const int animationDelay = 50;
 
 
 void setup() {
