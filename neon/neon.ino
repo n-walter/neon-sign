@@ -94,11 +94,10 @@ class Section {
     int animationStep = 0;
     int animationMaxStep = 100;
 
-    Section(ColourPair p1, ColourPair p2, ColourPair p3, int stripLength, Adafruit_NeoPixel strip) {
-        this->pair_a = p1;
-        this->pair_b = p2;
-        this->pair_c = p3;
-        this->pair_active = p1;
+    Section(Colour a1, Colour a2, Colour b1, Colour b2, Colour c1, Colour c2, int stripLength, Adafruit_NeoPixel strip) {
+        this->pair_a = ColourPair(a1, a2);
+        this->pair_b = ColourPair(b1, b2);
+        this->pair_c = ColourPair(c1, c2);
         
         this->stripLength = stripLength;
         this->strip = strip;
@@ -106,6 +105,10 @@ class Section {
 
     void initialise() {
         Serial.println("initialising...");
+
+        pair_a.initialise(stripLength);
+        pair_b.initialise(stripLength);
+        pair_c.initialise(stripLength);
 
         // initialise strip
         strip.begin();
@@ -124,16 +127,16 @@ class Section {
 
         switch (modeSelection) {
         case 0:
-            doAnimateSolid(false);
+            doAnimateSolid(pair_a, false);
             break;
         case 1:
-            doAnimateSolid(true);
+            doAnimateSolid(pair_a, true);
             break;
         case 2:
-            doAnimateAlternating();
+            doAnimateAlternating(pair_a);
             break;
         case 3: 
-            doAnimateGradientSlide();
+            doAnimateGradientSlide(pair_a);
             break;
         case 4:
             doAnimateRandomALl();
@@ -155,22 +158,25 @@ class Section {
 
     }
 
-    void doAnimateSolid(bool reverse) {
-        Serial.println("\tsolid");
-        Serial.println(reverse);
+    void doAnimateSolid(ColourPair active_pair, bool reverse) {
         strip.clear();
 
+        Colour local;
+        if (reverse) {
+            Serial.println("\tsolid reverse");
+            local = active_pair.complement;
+        } else {
+            Serial.println("\tsolid normal");
+            local = active_pair.colour;
+        }
+
         for (int i = 0; i < stripLength; i++) {
-            if (reverse) {
-                strip.setPixelColor(i, pair_active.colour.r, pair_active.colour.g, pair_active.colour.b);
-            } else {
-                strip.setPixelColor(i, pair_active.complement.r, pair_active.complement.g, pair_active.complement.b);
-            }
+            strip.setPixelColor(i, local.r, local.g, local.b);
         }
         strip.show();
     }
 
-    void doAnimateAlternating(int blockSize = 1) {
+    void doAnimateAlternating(ColourPair active_pair, int blockSize = 1) {
         Serial.println("\talternating");
         strip.clear();
 
@@ -191,7 +197,7 @@ class Section {
         strip.show();
     }
 
-    void doAnimateGradientSlide() {
+    void doAnimateGradientSlide(ColourPair pair_active) {
         Serial.println("\t gradient slide");
         strip.clear();
 
@@ -246,32 +252,28 @@ class Section {
 // https://colorcodes.io/neon-color-codes/
 Colour NEON_RED = Colour(210, 39, 48);
 Colour NEON_WHITE = Colour(255, 255, 255);
-ColourPair PAIR_1 = ColourPair(NEON_WHITE, NEON_RED);
-ColourPair PAIR_1_Reverse = ColourPair(NEON_RED, NEON_WHITE);
 
 Colour NEON_BLUE = Colour(77, 77, 255);
 Colour NEON_PURPLE = Colour(199, 36, 177);
-ColourPair PAIR_2 = ColourPair(NEON_BLUE, NEON_PURPLE);
 
 Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
-ColourPair PAIR_3 = ColourPair(NEON_GREEN, NEON_ORANGE);
 
 // setup for strips and sections
 int krummePin = A4;
 int krummeLength = 20;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
-Section krumme = Section(PAIR_1, PAIR_2, PAIR_3, krummeLength, krummeStrip);
+Section krumme = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREEN, NEON_ORANGE, krummeLength, krummeStrip);
 
 int gemeindePin = A5;
 int gemeindeLength = 20;
 Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
-Section gemeinde = Section(PAIR_1_Reverse, PAIR_2, PAIR_3, gemeindeLength, gemeindeStrip);
+Section gemeinde = Section(NEON_WHITE, NEON_RED, NEON_PURPLE, NEON_BLUE, NEON_ORANGE, NEON_GREEN, gemeindeLength, gemeindeStrip);
 
 int borderPin = A6;
 int borderLength = 60;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
-Section border = Section(PAIR_1, PAIR_2, PAIR_3, borderLength, borderStrip);
+Section border = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREEN, NEON_ORANGE, borderLength, borderStrip);
 
 // setup for buttons and dials
 const byte innerButtonPin = 0;
