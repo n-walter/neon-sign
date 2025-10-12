@@ -32,6 +32,7 @@ class Colour {
 class Section {
     public:
     // colour stuff
+    Colour initial;
     Colour colour;
     Colour complement;
 
@@ -142,6 +143,12 @@ class Section {
         case 4: 
             doAnimateGradientSlide();
             break;
+        case 5:
+            doAnimateRandomALl();
+            break;
+        case 6:
+            doAnimateRandomSingle();
+            break;
         default:
             Serial.println("\tdefault case");
             // if we don't have a handler for this mode, reset to base
@@ -243,6 +250,33 @@ class Section {
         strip.show();
     }
 
+    void doAnimateRandomALl() {
+        Serial.println("\t all random");
+        strip.clear();
+        int r, g, b;
+        for (int i = 0; i < stripLength; i++) {
+            r = rand() % 255;
+            g = rand() % 255;
+            b = rand() % 255;
+
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
+    void doAnimateRandomSingle() {
+        Serial.println("\t single random");
+        strip.clear();
+        int r, g, b;
+        r = rand() % 255;
+        g = rand() % 255;
+        b = rand() % 255;
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
     void nextAnimation() {
         modeSelection = modeSelection + 1;
     }
@@ -258,29 +292,28 @@ Colour NEON_ORANGE = Colour(255, 173, 0);
 Colour DEBUG_ON = Colour(255, 255, 255);
 Colour DEBUG_OFF = Colour(0, 0, 0);
 
+Colour TEST_RED = Colour(255, 0, 0);
+
 // setup for strips and sections
 int krummePin = A4;
 int krummeLength = 60;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
-Section krumme = Section(NEON_BLUE, NEON_PURPLE, 60, krummeStrip);
+Section krumme = Section(NEON_BLUE, NEON_PURPLE, krummeLength, krummeStrip);
 
 int gemeindePin = A5;
 int gemeindeLength = 20;
 Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
-Section gemeinde = Section(NEON_RED, NEON_GREEN, 20, gemeindeStrip);
+Section gemeinde = Section(NEON_RED, NEON_GREEN, gemeindeLength, gemeindeStrip);
 
 int borderPin = A6;
-int borderLength = 20;
+int borderLength = 60;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
-Section border = Section(DEBUG_ON, DEBUG_OFF, 20, borderStrip);
-
-
+Section border = Section(DEBUG_ON, DEBUG_OFF, borderLength, borderStrip);
 
 // setup for buttons and dials
-const byte buttonPin = 0;
-const byte potPin = A3;
+const byte innerButtonPin = 0;
+const byte borderButtonPin = 1;
 int animationDelay = 100;
-const int animationDelayMax = 500; // slowest: 1000/val steps per second. fastest: implicit 1 ms delay --> 1000 steps per second
 
 
 void setup() {
@@ -292,14 +325,15 @@ void setup() {
     gemeinde.initialise();
     border.initialise();
 
-    // set up button
+    // set up buttons
     // TODO: use this instead of interrupt to avoid hardware bounce
     // https://github.com/thomasfredericks/Bounce2
-    pinMode(buttonPin, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(buttonPin), button, RISING); // trigger interrupt when button is released
+    pinMode(innerButtonPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(innerButtonPin), innerButtonInterrupt, RISING); // trigger interrupt when button is released
+    
+    // pinMode(borderButtonPin, INPUT_PULLUP);
+    // attachInterrupt(digitalPinToInterrupt(borderButtonPin), borderButtonInterrupt, RISING);
 
-    // set up potentiometer
-    pinMode(potPin, INPUT);
     Serial.println("setup end");
 }
 
@@ -308,16 +342,16 @@ void loop() {
     gemeinde.animate();
     border.animate();
     
-    int potValue = analogRead(potPin); /// 10 bit
-    // normalize from 0-1023 to 1-1000
-    float percent = (float) potValue / 1023;
-    animationDelay = percent * animationDelayMax;
     
     delay(animationDelay);
 }
 
-void button() {
+void innerButtonInterrupt() {
     krumme.nextAnimation();
     gemeinde.nextAnimation();
     border.nextAnimation();
 }
+
+// void borderButtonInterrupt() {
+//     // TODO: border.strip.setBrightness(0);
+// }
