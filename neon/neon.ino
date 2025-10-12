@@ -22,17 +22,10 @@ class Colour {
         this->g = g;
         this->b = b;
     }
-
-    Colour calculateComplent() {
-        /*calculate the current colour's complentary colour. Mostly for testing purposes*/
-        return Colour(255-this->r, 255-this->g, 255-this->b);
-    }
 };
 
-class Section {
+class ColourPair {
     public:
-    // colour stuff
-    Colour initial;
     Colour colour;
     Colour complement;
 
@@ -40,27 +33,20 @@ class Section {
     LittleVector<Colour> down;
     LittleVector<Colour> updown;
 
-    // LED stuff
-    Adafruit_NeoPixel strip;
-    int stripLength;
+    ColourPair() {
+        this->colour = Colour(0, 0, 0);
+        this->complement = Colour(255, 255, 255);
+    }
 
-    // animation helpers
-    int modeSelection = 0;
-    int animationStep = 0;
-    int animationMaxStep = 100;
-
-    Section(Colour colour, Colour complement, int stripLength, Adafruit_NeoPixel strip) {
+    ColourPair(Colour colour, Colour complement) {
         this->colour = colour;
         this->complement = complement;
-        this->stripLength = stripLength;
-        this->strip = strip;
+    }
+
+    void initialise(int stripLength) {
         this->up.reserve(stripLength);
         this->down.reserve(stripLength);
         this->updown.reserve(stripLength);
-    }
-
-    void initialise() {
-        Serial.println("initialising...");
 
         // calculate colour gradients based on https://bsouthga.dev/posts/color-gradients-with-python 
         // That's weird python to start with. Now it's translated to C++ by someone who doesn't know C++. 
@@ -91,27 +77,36 @@ class Section {
             }
         }
         updown.push_back(colour);
+    }
+};
 
+class Section {
+    public:
+    // colour stuff
+    ColourPair pair_a, pair_b, pair_c, pair_active;
 
-        char strBuf[50];
-        Serial.println("vector up:");
-        for (int i = 0; i < up.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", up[i].r, up[i].g, up[i].b);
-            Serial.println(strBuf);
-        }
+    // LED stuff
+    Adafruit_NeoPixel strip;
+    int stripLength;
 
-        Serial.println("vector down:");
-        for (int i = 0; i < down.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", down[i].r, down[i].g, down[i].b);
-            Serial.println(strBuf);
-        }
+    // animation helpers
+    int modeSelection = 0;
+    int animationStep = 0;
+    int animationMaxStep = 100;
 
-        Serial.println("vector updown:");
-        for (int i = 0; i < updown.size(); i++) {
-            sprintf(strBuf, "r: %d g: %d b: %d", updown[i].r, updown[i].g, updown[i].b);
-            Serial.println(strBuf);
-        }
-                
+    Section(ColourPair p1, ColourPair p2, ColourPair p3, int stripLength, Adafruit_NeoPixel strip) {
+        this->pair_a = p1;
+        this->pair_b = p2;
+        this->pair_c = p3;
+        this->pair_active = p1;
+        
+        this->stripLength = stripLength;
+        this->strip = strip;
+    }
+
+    void initialise() {
+        Serial.println("initialising...");
+
         // initialise strip
         strip.begin();
         strip.setBrightness(32); // TODO: debug setting --> change/ remove
@@ -129,24 +124,21 @@ class Section {
 
         switch (modeSelection) {
         case 0:
-            doAnimateSolid();
+            doAnimateSolid(false);
             break;
         case 1:
-            doAnimateAlternating();
+            doAnimateSolid(true);
             break;
         case 2:
-            doAnimateGradientConstant();
+            doAnimateAlternating();
             break;
-        case 3:
-            doAnimateGradientBreathing();
-            break;
-        case 4: 
+        case 3: 
             doAnimateGradientSlide();
             break;
-        case 5:
+        case 4:
             doAnimateRandomALl();
             break;
-        case 6:
+        case 5:
             doAnimateRandomSingle();
             break;
         default:
@@ -163,70 +155,39 @@ class Section {
 
     }
 
-    void doAnimateSolid() {
+    void doAnimateSolid(bool reverse) {
         Serial.println("\tsolid");
+        Serial.println(reverse);
         strip.clear();
 
         for (int i = 0; i < stripLength; i++) {
-            strip.setPixelColor(i, colour.r, colour.g, colour.b);
+            if (reverse) {
+                strip.setPixelColor(i, pair_active.colour.r, pair_active.colour.g, pair_active.colour.b);
+            } else {
+                strip.setPixelColor(i, pair_active.complement.r, pair_active.complement.g, pair_active.complement.b);
+            }
         }
         strip.show();
     }
 
-    void doAnimateAlternating() {
+    void doAnimateAlternating(int blockSize = 1) {
         Serial.println("\talternating");
         strip.clear();
 
         // two lines in python (: 
         Colour a, b;
         if (animationStep % 2 == 0) {
-            a = colour;
-            b = complement;
+            a = pair_active.colour;
+            b = pair_active.complement;
         } else {
-            a = complement;
-            b = colour;
+            a = pair_active.complement;
+            b = pair_active.colour;
         }
 
-        for (int i = 0; i < stripLength; i+=2) {
+        for (int i = 0; i < stripLength; i += (2 * blockSize)) {
             strip.setPixelColor(i, a.r, a.g, a.b);
-            strip.setPixelColor(i+1, b.r, b.g, b.b);
+            strip.setPixelColor(i+blockSize, b.r, b.g, b.b);
         }
-        strip.show();
-    }
-
-    void doAnimateGradientConstant() {
-        Serial.println("\tgradient constant");  
-        strip.clear();
-
-        for (int i = 0; i < stripLength; i++) {
-            strip.setPixelColor(i, up[i].r, up[i].g, up[i].b);
-        }
-        strip.show();
-    }
-
-    void doAnimateGradientBreathing() {
-        Serial.println("\t gradient breathing");
-        strip.clear();
-
-        // can't use precalculated gradients, we want more detail for breathing
-        int localAnimationMax = animationMaxStep / 2;
-        int r, g, b;
-        if (animationStep < localAnimationMax) {
-            r = (int) (colour.r + ((float) animationStep / (localAnimationMax -1)) * (complement.r - colour.r));
-            g = (int) (colour.g + ((float) animationStep / (localAnimationMax -1)) * (complement.g - colour.g));
-            b = (int) (colour.b + ((float) animationStep / (localAnimationMax -1)) * (complement.b - colour.b));
-        } else {
-            r = (int) (complement.r + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.r - complement.r));
-            g = (int) (complement.g + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.g - complement.g));
-            b = (int) (complement.b + ((float) (animationStep - localAnimationMax) / (localAnimationMax -1)) * (colour.b - complement.b));
-        }
-
-        Colour current = Colour(r, g, b);
-
-        for (int i = 0; i < stripLength; i++) {
-            strip.setPixelColor(i, current.r, current.g, current.b);
-        }
-
         strip.show();
     }
 
@@ -241,9 +202,9 @@ class Section {
             int colourIndex = (i + offset) % stripLength;
             char strBuf2[100];
             int r, g, b;
-            r = updown[colourIndex].r;
-            g = updown[colourIndex].g;
-            b = updown[colourIndex].b;
+            r = pair_active.updown[colourIndex].r;
+            g = pair_active.updown[colourIndex].g;
+            b = pair_active.updown[colourIndex].b;
             strip.setPixelColor(i, r, g, b);
         }
 
@@ -283,32 +244,34 @@ class Section {
 };
 
 // https://colorcodes.io/neon-color-codes/
+Colour NEON_RED = Colour(210, 39, 48);
+Colour NEON_WHITE = Colour(255, 255, 255);
+ColourPair PAIR_1 = ColourPair(NEON_WHITE, NEON_RED);
+ColourPair PAIR_1_Reverse = ColourPair(NEON_RED, NEON_WHITE);
+
 Colour NEON_BLUE = Colour(77, 77, 255);
 Colour NEON_PURPLE = Colour(199, 36, 177);
-Colour NEON_RED = Colour(210, 39, 48);
+ColourPair PAIR_2 = ColourPair(NEON_BLUE, NEON_PURPLE);
+
 Colour NEON_GREEN = Colour(68, 214, 44);
 Colour NEON_ORANGE = Colour(255, 173, 0);
-
-Colour DEBUG_ON = Colour(255, 255, 255);
-Colour DEBUG_OFF = Colour(0, 0, 0);
-
-Colour TEST_RED = Colour(255, 0, 0);
+ColourPair PAIR_3 = ColourPair(NEON_GREEN, NEON_ORANGE);
 
 // setup for strips and sections
 int krummePin = A4;
-int krummeLength = 60;
+int krummeLength = 20;
 Adafruit_NeoPixel krummeStrip = Adafruit_NeoPixel(krummeLength, krummePin, NEO_GRB + NEO_KHZ800);
-Section krumme = Section(NEON_BLUE, NEON_PURPLE, krummeLength, krummeStrip);
+Section krumme = Section(PAIR_1, PAIR_2, PAIR_3, krummeLength, krummeStrip);
 
 int gemeindePin = A5;
 int gemeindeLength = 20;
 Adafruit_NeoPixel gemeindeStrip = Adafruit_NeoPixel(gemeindeLength, gemeindePin, NEO_GRB + NEO_KHZ800);
-Section gemeinde = Section(NEON_RED, NEON_GREEN, gemeindeLength, gemeindeStrip);
+Section gemeinde = Section(PAIR_1_Reverse, PAIR_2, PAIR_3, gemeindeLength, gemeindeStrip);
 
 int borderPin = A6;
 int borderLength = 60;
 Adafruit_NeoPixel borderStrip = Adafruit_NeoPixel(borderLength, borderPin, NEO_GRB + NEO_KHZ800);
-Section border = Section(DEBUG_ON, DEBUG_OFF, borderLength, borderStrip);
+Section border = Section(PAIR_1, PAIR_2, PAIR_3, borderLength, borderStrip);
 
 // setup for buttons and dials
 const byte innerButtonPin = 0;
