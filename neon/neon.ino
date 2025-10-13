@@ -138,19 +138,19 @@ class Section {
             doAnimateGradientSlide(pair_a);
             break;
         case 3:
-            doAnimateAlternating(pair_a);
+            doAnimateAlternating(pair_a, 5);
             break;
         case 4:
             doAnimateGradientSlide(pair_b);
             break;
         case 5:
-            doAnimateAlternating(pair_b);
+            doAnimateAlternating(pair_b, 5);
             break;
         case 6:
             doAnimateGradientSlide(pair_c);
             break;
         case 7:
-            doAnimateAlternating(pair_c);
+            doAnimateAlternating(pair_c, 5);
             break;
         // case 8:
         //     doAnimateRandomALl();
@@ -190,12 +190,10 @@ class Section {
         strip.show();
     }
 
-    void doAnimateAlternating(ColourPair active_pair) {
+    void doAnimateAlternating(ColourPair active_pair, int blocksize) {
         // TODO: anything but blocksize = 1 does not work, debug later
         Serial.println("\talternating");
         strip.clear();
-
-        int blocksize = 5;
 
         if (! (animationStep % 10 == 0)) {
             return;
