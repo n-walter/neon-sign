@@ -277,6 +277,33 @@ class Section {
         strip.show();
     }
 
+    void doAnimateRandomALl() {
+        Serial.println("\ all random");
+        strip.clear();
+        int r, g, b;
+        for (int i = 0; i < stripLength; i++) {
+            r = rand() % 255;
+            g = rand() % 255;
+            b = rand() % 255;
+
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
+    void doAnimateRandomSingle() {
+        Serial.println("\ single random");
+        strip.clear();
+        int r, g, b;
+        r = rand() % 255;
+        g = rand() % 255;
+        b = rand() % 255;
+        for (int i = 0; i < stripLength; i++) {
+            strip.setPixelColor(i, r, g, b);
+        }
+        strip.show();
+    }
+
     void nextAnimation() {
         modeSelection = modeSelection + 1;
     }
@@ -312,6 +339,8 @@ Section border = Section(NEON_RED, NEON_WHITE, NEON_BLUE, NEON_PURPLE, NEON_GREE
 const byte innerButtonPin = 1;
 const byte borderButtonPin = 5;
 const int animationDelay = 20;
+
+
 
 
 void setup() {
